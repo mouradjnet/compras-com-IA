@@ -1,0 +1,7 @@
+{
+  "name": "Compras com IA",
+  "description": "Gerenciador inteligente de listas de compras com sugestões via IA e leitor de código de barras.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
