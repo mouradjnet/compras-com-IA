@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ShoppingList from './components/ShoppingList';
+import ItemHistory from './components/ItemHistory';
 import { db } from './services/db';
 import { User, ShoppingList as ShoppingListType, ViewState } from './types';
 
@@ -55,6 +56,7 @@ function App() {
             user={user} 
             onSelectList={handleSelectList}
             onLogout={handleLogout}
+            onViewHistory={() => setCurrentView('ITEM_HISTORY')}
           />
         )}
 
@@ -63,6 +65,13 @@ function App() {
             list={selectedList}
             onBack={handleBackToDashboard}
           />
+        )}
+
+        {currentView === 'ITEM_HISTORY' && (
+            <ItemHistory 
+                userId={user.id}
+                onBack={handleBackToDashboard}
+            />
         )}
       </div>
     </div>

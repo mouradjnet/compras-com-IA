@@ -41,7 +41,11 @@ class LocalDB {
   // --- Lists ---
   getLists(userId: string): ShoppingList[] {
     const lists = this.get<ShoppingList[]>('lists') || [];
-    return lists.filter(l => l.userId === userId).sort((a, b) => b.createdAt - a.createdAt);
+    // Ensure legacy lists have a status
+    return lists
+      .filter(l => l.userId === userId)
+      .map(l => ({ ...l, status: l.status || 'active' }))
+      .sort((a, b) => b.createdAt - a.createdAt);
   }
 
   createList(userId: string, name: string): ShoppingList {
@@ -50,7 +54,8 @@ class LocalDB {
       id: crypto.randomUUID(),
       userId,
       name,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      status: 'active'
     };
     lists.push(newList);
     this.set('lists', lists);
@@ -68,11 +73,21 @@ class LocalDB {
     this.set('items', items);
   }
 
-  updateList(listId: string, name: string): void {
+  archiveList(listId: string): void {
     const lists = this.get<ShoppingList[]>('lists') || [];
     const index = lists.findIndex(l => l.id === listId);
     if (index !== -1) {
-      lists[index].name = name;
+      lists[index].status = 'archived';
+      lists[index].completedAt = Date.now();
+      this.set('lists', lists);
+    }
+  }
+
+  unarchiveList(listId: string): void {
+    const lists = this.get<ShoppingList[]>('lists') || [];
+    const index = lists.findIndex(l => l.id === listId);
+    if (index !== -1) {
+      lists[index].status = 'active';
       this.set('lists', lists);
     }
   }
@@ -112,6 +127,11 @@ class LocalDB {
     const index = items.findIndex(i => i.id === itemId);
     if (index !== -1) {
       items[index].completed = !items[index].completed;
+      if (items[index].completed) {
+          items[index].purchasedAt = Date.now();
+      } else {
+          delete items[index].purchasedAt;
+      }
       this.set('items', items);
     }
   }
@@ -120,6 +140,31 @@ class LocalDB {
     let items = this.get<Item[]>('items') || [];
     items = items.filter(i => i.id !== itemId);
     this.set('items', items);
+  }
+
+  // --- History ---
+  getPurchasedItemsHistory(userId: string): (Item & { listName: string, listDate: number })[] {
+      const lists = this.getLists(userId);
+      const listMap = new Map(lists.map(l => [l.id, l]));
+      
+      const allItems = this.get<Item[]>('items') || [];
+      
+      // Filter items that are completed AND belong to the user's lists
+      const history = allItems
+        .filter(i => i.completed && listMap.has(i.listId))
+        .map(i => {
+            const list = listMap.get(i.listId)!;
+            return {
+                ...i,
+                listName: list.name,
+                listDate: list.createdAt,
+                // If purchasedAt exists use it, otherwise fallback to list creation date (migration)
+                purchasedAt: i.purchasedAt || list.createdAt 
+            };
+        })
+        .sort((a, b) => (b.purchasedAt || 0) - (a.purchasedAt || 0));
+
+      return history;
   }
 
   // --- Products (Catalog) ---

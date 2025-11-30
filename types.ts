@@ -10,6 +10,8 @@ export interface ShoppingList {
   userId: string;
   name: string;
   createdAt: number; // timestamp
+  status: 'active' | 'archived';
+  completedAt?: number;
 }
 
 export interface Item {
@@ -21,6 +23,7 @@ export interface Item {
   estimatedPrice?: number;
   barcode?: string;
   completed: boolean;
+  purchasedAt?: number; // timestamp of when it was checked
 }
 
 export interface Product {
@@ -32,4 +35,4 @@ export interface Product {
   image?: string;
 }
 
-export type ViewState = 'LOGIN' | 'DASHBOARD' | 'LIST_DETAIL';
+export type ViewState = 'LOGIN' | 'DASHBOARD' | 'LIST_DETAIL' | 'ITEM_HISTORY';
